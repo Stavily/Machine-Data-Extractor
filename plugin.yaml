@@ -1,0 +1,48 @@
+id: "machine-data-extractor"
+name: "Machine Data Extractor"
+description: "Extracts info related to the machine like CPU, RAM, Disk, processes, etc."
+version: "1.0.0"
+author: "Stavily Team"
+license: "MIT"
+type: "action"
+
+# Python execution configuration
+runtime:
+  type: "python"
+  version: "3.8+"
+  entry_point: "main.py"
+  requirements: "requirements.txt"
+
+# Plugin configuration schema
+configuration:
+  extract_cpu:
+    type: "boolean"
+    description: "Extract CPU information (if checked, only selected attributes are extracted)"
+    default: false
+    required: false
+  extract_memory:
+    type: "boolean"
+    description: "Extract memory information (if checked, only selected attributes are extracted)"
+    default: false
+    required: false
+  extract_disk:
+    type: "boolean"
+    description: "Extract disk information (if checked, only selected attributes are extracted)"
+    default: false
+    required: false
+  extract_processes:
+    type: "boolean"
+    description: "Extract process information (if checked, only selected attributes are extracted)"
+    default: false
+    required: false
+
+
+# Resource limits
+limits:
+  memory: "128MB"
+  cpu: "0.2"
+  execution_time: "120s"
+
+# Permissions
+permissions:
+  network: true

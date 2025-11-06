@@ -1,10 +1,10 @@
 id: "machine-data-extractor"
 name: "Machine Data Extractor"
-description: "Extracts info related to the machine like CPU, RAM, Disk, processes, etc."
+description: "Extracts info related to the machine like CPU, RAM, Disk, processes, etc. Can run in monitoring loop mode to trigger when thresholds are exceeded."
 version: "1.0.0"
 author: "Stavily Team"
 license: "MIT"
-type: "action"
+type: "monitor"  # Changed from "action" to "monitor" to indicate loop functionality
 
 # Python execution configuration
 runtime:
@@ -15,16 +15,6 @@ runtime:
 
 # Plugin configuration schema
 configuration:
-  extract_cpu:
-    type: "boolean"
-    description: "Extract CPU information (if checked, only selected attributes are extracted)"
-    default: false
-    required: false
-  extract_memory:
-    type: "boolean"
-    description: "Extract memory information (if checked, only selected attributes are extracted)"
-    default: false
-    required: false
   extract_disk:
     type: "boolean"
     description: "Extract disk information (if checked, only selected attributes are extracted)"
@@ -35,13 +25,34 @@ configuration:
     description: "Extract process information (if checked, only selected attributes are extracted)"
     default: false
     required: false
+  monitor_interval:
+    type: "integer"
+    description: "Monitor interval in seconds (0 = no monitoring, default: 30)"
+    default: 30
+    required: false
+    minimum: 0
+    maximum: 100
+  cpu_trigger_percentage:
+    type: "integer"
+    description: "CPU trigger percentage (0-100, 0 = no limit, MANDATORY)"
+    default: 50
+    required: true
+    minimum: 0
+    maximum: 100
+  mem_trigger_percentage:
+    type: "integer"
+    description: "Memory trigger percentage (0-100, 0 = no limit, MANDATORY)"
+    default: 70
+    required: true
+    minimum: 0
+    maximum: 100
 
 
 # Resource limits
 limits:
   memory: "128MB"
   cpu: "0.2"
-  execution_time: "120s"
+  execution_time: "unlimited"  # Changed to unlimited for loop monitoring
 
 # Permissions
 permissions:

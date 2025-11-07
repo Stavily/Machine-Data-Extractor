@@ -118,7 +118,10 @@ class SystemMonitor:
                     else:
                         # Default behavior: print JSON
                         import json
+                        encloser = "-" * 10 + " TRIGGER EVENT "+ "-" * 10
+                        print(encloser)
                         print(json.dumps(trigger_event, indent=2))
+                        print(encloser)
 
                 # Wait for next cycle
                 time.sleep(self.monitor_interval)

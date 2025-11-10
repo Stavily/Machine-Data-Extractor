@@ -6,6 +6,12 @@ import time
 import datetime
 from typing import Dict, Any, Callable
 import logging
+import sys
+import os
+
+# Import shared agent client
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+from stavily_agent_client import StavilyAgentClient, StavilyAgentError
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +22,7 @@ class SystemMonitor:
     def __init__(self, config: Dict[str, Any]):
         """
         Initialize the system monitor
-        
+
         Args:
             config: Configuration dictionary
         """
@@ -24,7 +30,18 @@ class SystemMonitor:
         self.monitor_interval = config.get('monitor_interval', 30)
         self.cpu_trigger = config.get('cpu_trigger_percentage', 0)
         self.mem_trigger = config.get('mem_trigger_percentage', 0)
-        
+
+        # Initialize agent client
+        self.agent_client = None
+        try:
+            self.agent_client = StavilyAgentClient()
+            self.agent_client.connect()
+            logger.info("Connected to Stavily agent")
+        except StavilyAgentError as e:
+            logger.warning(f"Failed to connect to agent: {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error connecting to agent: {e}")
+
         logger.debug(f"Initialized SystemMonitor with interval={self.monitor_interval}s, "
                     f"CPU trigger={self.cpu_trigger}%, Memory trigger={self.mem_trigger}%")
     
@@ -49,6 +66,18 @@ class SystemMonitor:
                 cpu_percent = data['cpu']['cpu_percent']
                 if cpu_percent is not None and isinstance(cpu_percent, (int, float)) and cpu_percent > self.cpu_trigger:
                     logger.info(f"CPU trigger activated: {cpu_percent}% > {self.cpu_trigger}%")
+
+                    # Report trigger to agent
+                    if self.agent_client and self.agent_client.is_connected():
+                        try:
+                            self.agent_client.report_trigger("cpu_high", {
+                                "usage": cpu_percent,
+                                "threshold": self.cpu_trigger,
+                                "timestamp": data.get('timestamp', datetime.datetime.now().isoformat())
+                            })
+                        except StavilyAgentError as e:
+                            logger.warning(f"Failed to report CPU trigger to agent: {e}")
+
                     triggered = True
             else:
                 logger.warning("CPU data not available for trigger check - this should not happen in monitoring mode")
@@ -64,6 +93,18 @@ class SystemMonitor:
                 mem_percent = data['memory']['virtual_memory']['percent']
                 if mem_percent is not None and mem_percent > self.mem_trigger:
                     logger.info(f"Memory trigger activated: {mem_percent}% > {self.mem_trigger}%")
+
+                    # Report trigger to agent
+                    if self.agent_client and self.agent_client.is_connected():
+                        try:
+                            self.agent_client.report_trigger("memory_high", {
+                                "usage": mem_percent,
+                                "threshold": self.mem_trigger,
+                                "timestamp": data.get('timestamp', datetime.datetime.now().isoformat())
+                            })
+                        except StavilyAgentError as e:
+                            logger.warning(f"Failed to report memory trigger to agent: {e}")
+
                     triggered = True
             else:
                 logger.debug("Memory data not available for trigger check")
@@ -101,12 +142,36 @@ class SystemMonitor:
         logger.info(f"Starting monitoring loop with {self.monitor_interval}s interval")
         logger.info(f"Monitor configuration: CPU trigger={self.cpu_trigger}%, Memory trigger={self.mem_trigger}%")
 
+        # Log monitoring start to agent
+        if self.agent_client and self.agent_client.is_connected():
+            try:
+                self.agent_client.upload_logs([{
+                    "level": "INFO",
+                    "message": f"Machine Data Extractor monitoring started with CPU trigger={self.cpu_trigger}%, Memory trigger={self.mem_trigger}%",
+                    "timestamp": datetime.datetime.now().isoformat()
+                }])
+            except StavilyAgentError as e:
+                logger.warning(f"Failed to log monitoring start to agent: {e}")
+
         cycle_count = 0
         try:
             while True:
                 cycle_count += 1
                 # Extract current data
                 data = data_extractor()
+
+                # Upload periodic monitoring data to agent
+                if self.agent_client and self.agent_client.is_connected():
+                    try:
+                        cpu_usage = data.get('cpu', {}).get('cpu_percent', 'unknown')
+                        mem_usage = data.get('memory', {}).get('virtual_memory', {}).get('percent', 'unknown')
+                        self.agent_client.upload_logs([{
+                            "level": "INFO",
+                            "message": f"Monitoring cycle #{cycle_count}: CPU={cpu_usage}%, Memory={mem_usage}%",
+                            "timestamp": data.get('timestamp', datetime.datetime.now().isoformat())
+                        }])
+                    except StavilyAgentError as e:
+                        logger.warning(f"Failed to upload monitoring data to agent: {e}")
 
                 # Check if we should trigger
                 trigger_result = self.should_trigger(data)
@@ -128,6 +193,30 @@ class SystemMonitor:
 
         except KeyboardInterrupt:
             logger.info(f"Monitoring stopped by user after {cycle_count} cycles")
+
+            # Log monitoring stop to agent
+            if self.agent_client and self.agent_client.is_connected():
+                try:
+                    self.agent_client.upload_logs([{
+                        "level": "INFO",
+                        "message": f"Machine Data Extractor monitoring stopped after {cycle_count} cycles",
+                        "timestamp": datetime.datetime.now().isoformat()
+                    }])
+                except StavilyAgentError as e:
+                    logger.warning(f"Failed to log monitoring stop to agent: {e}")
+
         except Exception as e:
             logger.error(f"Monitoring loop error after {cycle_count} cycles: {str(e)}")
+
+            # Log error to agent
+            if self.agent_client and self.agent_client.is_connected():
+                try:
+                    self.agent_client.upload_logs([{
+                        "level": "ERROR",
+                        "message": f"Machine Data Extractor monitoring error after {cycle_count} cycles: {str(e)}",
+                        "timestamp": datetime.datetime.now().isoformat()
+                    }])
+                except StavilyAgentError as e:
+                    logger.warning(f"Failed to log monitoring error to agent: {e}")
+
             raise

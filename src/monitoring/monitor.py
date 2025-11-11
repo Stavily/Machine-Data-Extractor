@@ -38,9 +38,9 @@ class SystemMonitor:
             self.agent_client.connect()
             logger.info("Connected to Stavily agent")
         except StavilyAgentError as e:
-            logger.warning(f"Failed to connect to agent: {e}")
+            raise f"Failed to connect to agent: {e}"
         except Exception as e:
-            logger.warning(f"Unexpected error connecting to agent: {e}")
+            raise f"Unexpected error connecting to agent: {e}"
 
         logger.debug(f"Initialized SystemMonitor with interval={self.monitor_interval}s, "
                     f"CPU trigger={self.cpu_trigger}%, Memory trigger={self.mem_trigger}%")

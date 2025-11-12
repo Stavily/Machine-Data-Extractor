@@ -201,6 +201,12 @@ class StavilyAgentClient:
                 raise ValueError("Log entries must contain 'level', 'message', and 'timestamp' fields")
 
         params = {"logs": logs}
+
+        # Include instruction_id if available in environment
+        instruction_id = os.environ.get("STAVILY_INSTRUCTION_ID")
+        if instruction_id:
+            params["instruction_id"] = instruction_id
+
         result = self._call("upload_logs", params)
 
         log_count = len(logs)

@@ -144,7 +144,7 @@ class SystemMonitor:
         if self.agent_client and self.agent_client.is_connected():
             try:
                 self.agent_client.upload_logs([{
-                    "level": "INFO",
+                    "level": "info",
                     "message": f"Machine Data Extractor monitoring started with CPU trigger={self.cpu_trigger}%, Memory trigger={self.mem_trigger}%",
                     "timestamp": datetime.datetime.now().isoformat()
                 }])
@@ -164,7 +164,7 @@ class SystemMonitor:
                         cpu_usage = data.get('cpu', {}).get('cpu_percent', 'unknown')
                         mem_usage = data.get('memory', {}).get('virtual_memory', {}).get('percent', 'unknown')
                         self.agent_client.upload_logs([{
-                            "level": "INFO",
+                            "level": "info",
                             "message": f"Monitoring cycle #{cycle_count}: CPU={cpu_usage}%, Memory={mem_usage}%",
                             "timestamp": data.get('timestamp', datetime.datetime.now().isoformat())
                         }])
@@ -196,7 +196,7 @@ class SystemMonitor:
             if self.agent_client and self.agent_client.is_connected():
                 try:
                     self.agent_client.upload_logs([{
-                        "level": "INFO",
+                        "level": "info",
                         "message": f"Machine Data Extractor monitoring stopped after {cycle_count} cycles",
                         "timestamp": datetime.datetime.now().isoformat()
                     }])
